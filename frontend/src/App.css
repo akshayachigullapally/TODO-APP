@@ -258,10 +258,55 @@ body {
   background: var(--bg-secondary);
 }
 
+.form-row {
+  margin-bottom: 16px;
+}
+
 .input-group {
   display: flex;
   gap: 12px;
   align-items: center;
+}
+
+.form-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.option-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.option-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-quaternary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-select,
+.form-input {
+  padding: 10px 12px;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-family: inherit;
+  transition: var(--transition);
+}
+
+.form-select:focus,
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 2px var(--primary-blue-light);
+  background: var(--bg-elevated);
 }
 
 .todo-input {
@@ -462,6 +507,16 @@ body {
   opacity: 1;
 }
 
+.todo-item.overdue::before {
+  background: var(--accent-red);
+  opacity: 1;
+}
+
+.todo-item.due-soon::before {
+  background: var(--accent-orange);
+  opacity: 1;
+}
+
 .todo-content {
   flex: 1;
   display: flex;
@@ -520,9 +575,15 @@ body {
 .todo-details {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
   flex: 1;
   min-width: 0;
+}
+
+.todo-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .todo-text {
@@ -539,22 +600,50 @@ body {
   color: var(--text-quaternary);
 }
 
+.todo-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.category-badge,
+.priority-badge {
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: white;
+}
+
 .todo-timestamps {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  font-size: 12px;
+  gap: 3px;
+  font-size: 11px;
   color: var(--text-quaternary);
 }
 
-.created-at, .completed-at {
+.created-at, .completed-at, .due-date {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  font-weight: 500;
 }
 
 .completed-at {
   color: var(--accent-green);
+}
+
+.due-date.overdue {
+  color: var(--accent-red);
+  font-weight: 600;
+}
+
+.due-date.due-soon {
+  color: var(--accent-orange);
+  font-weight: 600;
 }
 
 .delete-button {
@@ -739,7 +828,12 @@ body {
   }
   
   .input-group {
-    flex-direction: column;
+    flex-direction: row;
+    gap: 12px;
+  }
+  
+  .form-options {
+    grid-template-columns: 1fr;
     gap: 12px;
   }
   
@@ -775,6 +869,23 @@ body {
     font-size: 14px;
     padding: 14px 8px;
   }
+
+  .todo-meta {
+    flex-wrap: wrap;
+  }
+  
+  .category-badge,
+  .priority-badge {
+    font-size: 9px;
+    padding: 3px 6px;
+  }
+}
+
+@media (max-width: 768px) {
+  .form-options {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -794,6 +905,14 @@ body {
   
   .header {
     padding: 24px 20px 20px;
+  }
+  
+  .form-options {
+    grid-template-columns: 1fr;
+  }
+  
+  .input-group {
+    flex-direction: column;
   }
 }
 

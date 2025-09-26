@@ -7,12 +7,92 @@ const API_URL = 'http://127.0.0.1:5000';
 function App() {
   const [todos, setTodos] = useState([]);
   const [inputValue, setInputValue] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('General');
+  const [selectedPriority, setSelectedPriority] = useState('Medium');
+  const [dueDate, setDueDate] = useState('');
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [stats, setStats] = useState({ total: 0, completed: 0, pending: 0 });
-  const [activeTab, setActiveTab] = useState('todos'); // 'todos' or 'history'
+  const [stats, setStats] = useState({ 
+    total: 0, 
+    completed: 0, 
+    pending: 0,
+    priority_breakdown: { high: 0, medium: 0, low: 0 },
+    overdue: 0
+  });
+  const [activeTab, setActiveTab] = useState('todos');
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+
+  // Request notification permission on component mount
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  // Check for due tasks and show notifications
+  useEffect(() => {
+    const checkDueTasks = () => {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        const now = new Date();
+        const dueSoon = todos.filter(todo => {
+          if (!todo.due_date || todo.completed) return false;
+          const dueDate = new Date(todo.due_date);
+          const timeDiff = dueDate - now;
+          // Notify if due within next hour
+          return timeDiff > 0 && timeDiff <= 60 * 60 * 1000;
+        });
+
+        dueSoon.forEach(todo => {
+          new Notification('Task Due Soon!', {
+            body: `"${todo.task}" is due soon`,
+            icon: '/favicon.ico'
+          });
+        });
+      }
+    };
+
+    const interval = setInterval(checkDueTasks, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, [todos]);
+
+  // Get priority color
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'High': return '#FF3B30';
+      case 'Medium': return '#FF9500';
+      case 'Low': return '#34C759';
+      default: return '#FF9500';
+    }
+  };
+
+  // Get category color
+  const getCategoryColor = (category) => {
+    const colors = {
+      'Work': '#007AFF',
+      'Personal': '#5856D6',
+      'Shopping': '#FF9500',
+      'Health': '#34C759',
+      'General': '#8E8E93'
+    };
+    return colors[category] || colors['General'];
+  };
+
+  // Check if task is overdue
+  const isOverdue = (dueDate, completed) => {
+    if (!dueDate || completed) return false;
+    return new Date(dueDate) < new Date();
+  };
+
+  // Check if task is due soon (within 24 hours)
+  const isDueSoon = (dueDate, completed) => {
+    if (!dueDate || completed) return false;
+    const due = new Date(dueDate);
+    const now = new Date();
+    const timeDiff = due - now;
+    return timeDiff > 0 && timeDiff <= 24 * 60 * 60 * 1000;
+  };
 
   // Format date for display
   const formatDateTime = (dateString) => {
@@ -41,6 +121,37 @@ function App() {
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
     return formatDateTime(dateString);
+  };
+
+  // Format due date display
+  const formatDueDate = (dueDateString) => {
+    if (!dueDateString) return null;
+    const dueDate = new Date(dueDateString);
+    const now = new Date();
+    const diffMs = dueDate - now;
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+
+    if (diffMs < 0) return 'Overdue';
+    if (diffDays === 0) {
+      if (diffHours === 0) return 'Due now';
+      return `Due in ${diffHours}h`;
+    }
+    if (diffDays === 1) return 'Due tomorrow';
+    if (diffDays < 7) return `Due in ${diffDays} days`;
+    return dueDate.toLocaleDateString();
+  };
+
+  // Fetch categories from backend
+  const fetchCategories = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/categories`);
+      setCategories(response.data);
+    } catch (err) {
+      console.error('Error fetching categories:', err);
+      // Set default categories if fetch fails
+      setCategories(['General', 'Work', 'Personal', 'Shopping', 'Health']);
+    }
   };
 
   // Fetch todos from backend
@@ -87,11 +198,22 @@ function App() {
     if (!inputValue.trim()) return;
 
     try {
-      const response = await axios.post(`${API_URL}/todos`, {
-        task: inputValue.trim()
-      });
+      const todoData = {
+        task: inputValue.trim(),
+        category: selectedCategory,
+        priority: selectedPriority,
+        due_date: dueDate || null
+      };
+
+      const response = await axios.post(`${API_URL}/todos`, todoData);
       setTodos([response.data, ...todos]);
+      
+      // Reset form
       setInputValue('');
+      setSelectedCategory('General');
+      setSelectedPriority('Medium');
+      setDueDate('');
+      
       fetchStats();
     } catch (err) {
       setError('Failed to add todo');
@@ -128,6 +250,7 @@ function App() {
   useEffect(() => {
     fetchTodos();
     fetchStats();
+    fetchCategories();
     if (activeTab === 'history') {
       fetchHistory();
     }
@@ -179,17 +302,60 @@ function App() {
         {/* Add Todo Form - only show on todos tab */}
         {activeTab === 'todos' && (
           <form onSubmit={addTodo} className="todo-form">
-            <div className="input-group">
-              <input
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Add a new task"
-                className="todo-input"
-              />
-              <button type="submit" className="add-button">
-                <span className="add-icon">+</span>
-              </button>
+            <div className="form-row">
+              <div className="input-group">
+                <input
+                  type="text"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  placeholder="Add a new task"
+                  className="todo-input"
+                />
+                <button type="submit" className="add-button">
+                  <span className="add-icon">+</span>
+                </button>
+              </div>
+            </div>
+            
+            <div className="form-options">
+              <div className="option-group">
+                <label htmlFor="category">Category</label>
+                <select 
+                  id="category"
+                  value={selectedCategory} 
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="form-select"
+                >
+                  {categories.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="option-group">
+                <label htmlFor="priority">Priority</label>
+                <select 
+                  id="priority"
+                  value={selectedPriority} 
+                  onChange={(e) => setSelectedPriority(e.target.value)}
+                  className="form-select"
+                >
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
+                </select>
+              </div>
+              
+              <div className="option-group">
+                <label htmlFor="dueDate">Due Date</label>
+                <input 
+                  type="datetime-local"
+                  id="dueDate"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="form-input"
+                />
+              </div>
             </div>
           </form>
         )}
@@ -222,14 +388,35 @@ function App() {
                 todos.map((todo) => (
                   <div
                     key={todo.id}
-                    className={`todo-item ${todo.completed ? 'completed' : ''}`}
+                    className={`todo-item ${todo.completed ? 'completed' : ''} ${
+                      isOverdue(todo.due_date, todo.completed) ? 'overdue' : ''
+                    } ${isDueSoon(todo.due_date, todo.completed) ? 'due-soon' : ''}`}
                   >
                     <div className="todo-content" onClick={() => toggleTodo(todo.id)}>
                       <div className="checkbox">
                         {todo.completed && <span className="checkmark">✓</span>}
                       </div>
                       <div className="todo-details">
-                        <span className="todo-text">{todo.task}</span>
+                        <div className="todo-main">
+                          <span className="todo-text">{todo.task}</span>
+                          <div className="todo-meta">
+                            <span 
+                              className="category-badge"
+                              style={{ backgroundColor: getCategoryColor(todo.category) }}
+                            >
+                              {todo.category}
+                            </span>
+                            <span 
+                              className="priority-badge"
+                              style={{ 
+                                backgroundColor: getPriorityColor(todo.priority),
+                                color: 'white'
+                              }}
+                            >
+                              {todo.priority}
+                            </span>
+                          </div>
+                        </div>
                         <div className="todo-timestamps">
                           <span className="created-at">
                             ➕ Created {formatRelativeTime(todo.created_at)}
@@ -237,6 +424,14 @@ function App() {
                           {todo.completed_at && (
                             <span className="completed-at">
                               ✅ Completed {formatRelativeTime(todo.completed_at)}
+                            </span>
+                          )}
+                          {todo.due_date && (
+                            <span className={`due-date ${
+                              isOverdue(todo.due_date, todo.completed) ? 'overdue' :
+                              isDueSoon(todo.due_date, todo.completed) ? 'due-soon' : ''
+                            }`}>
+                              📅 {formatDueDate(todo.due_date)}
                             </span>
                           )}
                         </div>
