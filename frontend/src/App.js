@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import Dashboard from './components/Dashboard';
+import PomodoroTimer from './components/PomodoroTimer';
 import './App.css';
 
 const API_URL = 'http://127.0.0.1:5000';
@@ -9,6 +11,7 @@ function App() {
   const [inputValue, setInputValue] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('General');
   const [selectedPriority, setSelectedPriority] = useState('Medium');
+  const [selectedRecurrence, setSelectedRecurrence] = useState('none');
   const [dueDate, setDueDate] = useState('');
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,6 +26,8 @@ function App() {
   const [activeTab, setActiveTab] = useState('todos');
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [showPomodoro, setShowPomodoro] = useState(false);
+  const [selectedTodoForFocus, setSelectedTodoForFocus] = useState(null);
 
   // Request notification permission on component mount
   useEffect(() => {
@@ -202,6 +207,7 @@ function App() {
         task: inputValue.trim(),
         category: selectedCategory,
         priority: selectedPriority,
+        recurrence: selectedRecurrence,
         due_date: dueDate || null
       };
 
@@ -212,6 +218,7 @@ function App() {
       setInputValue('');
       setSelectedCategory('General');
       setSelectedPriority('Medium');
+      setSelectedRecurrence('none');
       setDueDate('');
       
       fetchStats();
@@ -247,6 +254,25 @@ function App() {
     }
   };
 
+  // Start focus mode
+  const startFocusMode = (todo) => {
+    setSelectedTodoForFocus(todo);
+    setShowPomodoro(true);
+  };
+
+  // Complete focus session
+  const completeFocusSession = async () => {
+    if (selectedTodoForFocus) {
+      await toggleTodo(selectedTodoForFocus.id);
+    }
+  };
+
+  // Close focus mode
+  const closeFocusMode = () => {
+    setShowPomodoro(false);
+    setSelectedTodoForFocus(null);
+  };
+
   useEffect(() => {
     fetchTodos();
     fetchStats();
@@ -258,254 +284,319 @@ function App() {
 
   return (
     <div className="app">
+      {/* Full Width Header */}
+      <header className="header">
+        <h1 className="title">
+          <span className="title-icon">📋</span>
+          All my tasks
+        </h1>
+        <p className="subtitle">Stay organized and focused</p>
+      </header>
+
       <div className="container">
-        <header className="header">
-          <h1 className="title">
-            <span className="title-icon">📋</span>
-            All my tasks
-          </h1>
-          <p className="subtitle">Stay organized and focused</p>
-        </header>
+        {/* Sidebar */}
+        <div className="sidebar">
+          {/* Statistics */}
+          <div className="stats">
+            <div className="stat-card">
+              <div className="stat-number">{stats.total}</div>
+              <div className="stat-label">Total</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-number">{stats.completed}</div>
+              <div className="stat-label">Completed</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-number">{stats.pending}</div>
+              <div className="stat-label">Pending</div>
+            </div>
+          </div>
 
-        {/* Statistics */}
-        <div className="stats">
-          <div className="stat-card">
-            <div className="stat-number">{stats.total}</div>
-            <div className="stat-label">Total</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">{stats.completed}</div>
-            <div className="stat-label">Completed</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">{stats.pending}</div>
-            <div className="stat-label">Pending</div>
+          {/* Navigation Tabs */}
+          <div className="tabs">
+            <button 
+              className={`tab ${activeTab === 'todos' ? 'active' : ''}`}
+              onClick={() => setActiveTab('todos')}
+            >
+              <span>📝</span> Today
+            </button>
+            <button 
+              className={`tab ${activeTab === 'dashboard' ? 'active' : ''}`}
+              onClick={() => setActiveTab('dashboard')}
+            >
+              <span>📊</span> Dashboard
+            </button>
+            <button 
+              className={`tab ${activeTab === 'history' ? 'active' : ''}`}
+              onClick={() => setActiveTab('history')}
+            >
+              <span>📅</span> History
+            </button>
           </div>
         </div>
-
-        {/* Navigation Tabs */}
-        <div className="tabs">
-          <button 
-            className={`tab ${activeTab === 'todos' ? 'active' : ''}`}
-            onClick={() => setActiveTab('todos')}
-          >
-            <span>📝</span> Today
-          </button>
-          <button 
-            className={`tab ${activeTab === 'history' ? 'active' : ''}`}
-            onClick={() => setActiveTab('history')}
-          >
-            <span>📅</span> History
-          </button>
-        </div>
-
-        {/* Add Todo Form - only show on todos tab */}
-        {activeTab === 'todos' && (
-          <form onSubmit={addTodo} className="todo-form">
-            <div className="form-row">
-              <div className="input-group">
-                <input
-                  type="text"
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  placeholder="Add a new task"
-                  className="todo-input"
-                />
-                <button type="submit" className="add-button">
-                  <span className="add-icon">+</span>
-                </button>
-              </div>
-            </div>
-            
-            <div className="form-options">
-              <div className="option-group">
-                <label htmlFor="category">Category</label>
-                <select 
-                  id="category"
-                  value={selectedCategory} 
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="form-select"
-                >
-                  {categories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div className="option-group">
-                <label htmlFor="priority">Priority</label>
-                <select 
-                  id="priority"
-                  value={selectedPriority} 
-                  onChange={(e) => setSelectedPriority(e.target.value)}
-                  className="form-select"
-                >
-                  <option value="High">High</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Low">Low</option>
-                </select>
-              </div>
-              
-              <div className="option-group">
-                <label htmlFor="dueDate">Due Date</label>
-                <input 
-                  type="datetime-local"
-                  id="dueDate"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className="form-input"
-                />
-              </div>
-            </div>
-          </form>
-        )}
-
-        {/* Error Message */}
-        {error && (
-          <div className="error-message">
-            <span className="error-icon">⚠️</span>
-            {error}
-          </div>
-        )}
 
         {/* Main Content */}
         <div className="main-content">
-          {activeTab === 'todos' ? (
-            /* Todo List */
-            <div className="todo-list">
-              {loading ? (
-                <div className="loading">
-                  <div className="spinner"></div>
-                  Loading todos...
-                </div>
-              ) : todos.length === 0 ? (
-                <div className="empty-state">
-                  <div className="empty-icon">🎯</div>
-                  <h3>Add your first task</h3>
-                  <p>Time to add your first tasks</p>
-                </div>
-              ) : (
-                todos.map((todo) => (
-                  <div
-                    key={todo.id}
-                    className={`todo-item ${todo.completed ? 'completed' : ''} ${
-                      isOverdue(todo.due_date, todo.completed) ? 'overdue' : ''
-                    } ${isDueSoon(todo.due_date, todo.completed) ? 'due-soon' : ''}`}
-                  >
-                    <div className="todo-content" onClick={() => toggleTodo(todo.id)}>
-                      <div className="checkbox">
-                        {todo.completed && <span className="checkmark">✓</span>}
-                      </div>
-                      <div className="todo-details">
-                        <div className="todo-main">
-                          <span className="todo-text">{todo.task}</span>
-                          <div className="todo-meta">
-                            <span 
-                              className="category-badge"
-                              style={{ backgroundColor: getCategoryColor(todo.category) }}
-                            >
-                              {todo.category}
-                            </span>
-                            <span 
-                              className="priority-badge"
-                              style={{ 
-                                backgroundColor: getPriorityColor(todo.priority),
-                                color: 'white'
-                              }}
-                            >
-                              {todo.priority}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="todo-timestamps">
-                          <span className="created-at">
-                            ➕ Created {formatRelativeTime(todo.created_at)}
-                          </span>
-                          {todo.completed_at && (
-                            <span className="completed-at">
-                              ✅ Completed {formatRelativeTime(todo.completed_at)}
-                            </span>
-                          )}
-                          {todo.due_date && (
-                            <span className={`due-date ${
-                              isOverdue(todo.due_date, todo.completed) ? 'overdue' :
-                              isDueSoon(todo.due_date, todo.completed) ? 'due-soon' : ''
-                            }`}>
-                              📅 {formatDueDate(todo.due_date)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => deleteTodo(todo.id)}
-                      className="delete-button"
-                      aria-label="Delete todo"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          ) : (
-            /* History View */
-            <div className="history-view">
-              {historyLoading ? (
-                <div className="loading">
-                  <div className="spinner"></div>
-                  Loading history...
-                </div>
-              ) : history.length === 0 ? (
-                <div className="empty-state">
-                  <div className="empty-icon">📅</div>
-                  <h3>No history yet</h3>
-                  <p>Start creating and completing todos to see your history!</p>
-                </div>
-              ) : (
-                history.map((day) => (
-                  <div key={day.date} className="history-day">
-                    <div className="history-date">
-                      <h3>{new Date(day.date).toLocaleDateString('en-US', { 
-                        weekday: 'long', 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
-                      })}</h3>
-                      <div className="day-stats">
-                        <span className="stat">✨ {day.created_count} created</span>
-                        <span className="stat">✅ {day.completed_count} completed</span>
-                      </div>
-                    </div>
-                    <div className="history-todos">
-                      {day.todos.map((todo) => (
-                        <div key={`${day.date}-${todo.id}`} className="history-todo">
-                          <div className={`activity-icon ${todo.activity_type}`}>
-                            {todo.activity_type === 'created' ? '✨' : 
-                             todo.activity_type === 'completed' ? '✅' : '🌟'}
-                          </div>
-                          <div className="history-todo-content">
-                            <span className="history-todo-text">{todo.task}</span>
-                            <span className="history-activity-type">
-                              {todo.activity_type === 'created' ? 'Created' :
-                               todo.activity_type === 'completed' ? 'Completed' : 'Created & Completed'}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))
-              )}
+          {/* Error Message */}
+          {error && (
+            <div className="error-message">
+              <span className="error-icon">⚠️</span>
+              {error}
             </div>
           )}
-        </div>
 
-        {/* Footer */}
-        <footer className="footer">
-          <p>Tap on a task to mark it as complete</p>
-        </footer>
+          {/* Add Todo Form - only show on todos tab */}
+          {activeTab === 'todos' && (
+            <form onSubmit={addTodo} className="todo-form">
+              <div className="form-row">
+                <div className="input-group">
+                  <input
+                    type="text"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    placeholder="Add a new task"
+                    className="todo-input"
+                  />
+                  <button type="submit" className="add-button">
+                    <span className="add-icon">+</span>
+                  </button>
+                </div>
+              </div>
+              
+              <div className="form-options">
+                <div className="option-group">
+                  <label htmlFor="category">Category</label>
+                  <select 
+                    id="category"
+                    value={selectedCategory} 
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="form-select"
+                  >
+                    {categories.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="option-group">
+                  <label htmlFor="priority">Priority</label>
+                  <select 
+                    id="priority"
+                    value={selectedPriority} 
+                    onChange={(e) => setSelectedPriority(e.target.value)}
+                    className="form-select"
+                  >
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                  </select>
+                </div>
+                
+                <div className="option-group">
+                  <label htmlFor="recurrence">Repeat</label>
+                  <select 
+                    id="recurrence"
+                    value={selectedRecurrence} 
+                    onChange={(e) => setSelectedRecurrence(e.target.value)}
+                    className="form-select"
+                  >
+                    <option value="none">None</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                </div>
+                
+                <div className="option-group">
+                  <label htmlFor="dueDate">Due Date</label>
+                  <input 
+                    type="datetime-local"
+                    id="dueDate"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                    className="form-input"
+                  />
+                </div>
+              </div>
+            </form>
+          )}
+
+          {/* Content Area */}
+          <div className="content-area">
+            {loading ? (
+              <div className="loading">
+                <div className="spinner"></div>
+                Loading todos...
+              </div>
+            ) : activeTab === 'todos' ? (
+              /* Todo List */
+              <div className="todo-list">
+                {todos.length === 0 ? (
+                  <div className="empty-state">
+                    <div className="empty-icon">📝</div>
+                    <h3>No tasks yet</h3>
+                    <p>Add your first task above to get started!</p>
+                  </div>
+                ) : (
+                  todos.map((todo) => (
+                    <div key={todo.id} className={`todo-item ${todo.completed ? 'completed' : ''} ${
+                      isOverdue(todo.due_date, todo.completed) ? 'overdue' : ''
+                    } ${isDueSoon(todo.due_date, todo.completed) ? 'due-soon' : ''}`}>
+                      <div 
+                        className="todo-content"
+                        onClick={() => toggleTodo(todo.id)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            toggleTodo(todo.id);
+                          }
+                        }}
+                      >
+                        <div className="todo-main">
+                          <div className={`checkbox ${todo.completed ? 'checked' : ''}`}>
+                            {todo.completed && <span className="checkmark">✓</span>}
+                          </div>
+                          <div className="todo-text-container">
+                            <span className="todo-text">{todo.task}</span>
+                            <div className="todo-meta">
+                              <span 
+                                className="category-badge"
+                                style={{ backgroundColor: getCategoryColor(todo.category) }}
+                              >
+                                {todo.category}
+                              </span>
+                              <span 
+                                className="priority-badge"
+                                style={{ 
+                                  backgroundColor: getPriorityColor(todo.priority),
+                                  color: 'white'
+                                }}
+                              >
+                                {todo.priority}
+                              </span>
+                              {todo.recurrence !== 'none' && (
+                                <span className="recurrence-badge">
+                                  🔄 {todo.recurrence}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="todo-timestamps">
+                            <span className="created-at">
+                              ➕ Created {formatRelativeTime(todo.created_at)}
+                            </span>
+                            {todo.completed_at && (
+                              <span className="completed-at">
+                                ✅ Completed {formatRelativeTime(todo.completed_at)}
+                              </span>
+                            )}
+                            {todo.due_date && (
+                              <span className={`due-date ${
+                                isOverdue(todo.due_date, todo.completed) ? 'overdue' :
+                                isDueSoon(todo.due_date, todo.completed) ? 'due-soon' : ''
+                              }`}>
+                                📅 {formatDueDate(todo.due_date)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="todo-actions">
+                        {!todo.completed && (
+                          <button
+                            onClick={() => startFocusMode(todo)}
+                            className="focus-button"
+                            aria-label="Start focus mode"
+                            title="Start 25-minute focus session"
+                          >
+                            🍅
+                          </button>
+                        )}
+                        <button
+                          onClick={() => deleteTodo(todo.id)}
+                          className="delete-button"
+                          aria-label="Delete todo"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            ) : activeTab === 'dashboard' ? (
+              /* Dashboard */
+              <Dashboard />
+            ) : (
+              /* History View */
+              <div className="history-view">
+                {historyLoading ? (
+                  <div className="loading">
+                    <div className="spinner"></div>
+                    Loading history...
+                  </div>
+                ) : history.length === 0 ? (
+                  <div className="empty-state">
+                    <div className="empty-icon">📅</div>
+                    <h3>No history yet</h3>
+                    <p>Start creating and completing todos to see your history!</p>
+                  </div>
+                ) : (
+                  history.map((day) => (
+                    <div key={day.date} className="history-day">
+                      <div className="history-date">
+                        <h3>{new Date(day.date).toLocaleDateString('en-US', { 
+                          weekday: 'long', 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })}</h3>
+                        <div className="day-stats">
+                          <span className="stat">✨ {day.created_count} created</span>
+                          <span className="stat">✅ {day.completed_count} completed</span>
+                        </div>
+                      </div>
+                      <div className="history-todos">
+                        {day.todos.map((todo) => (
+                          <div key={`${day.date}-${todo.id}`} className="history-todo">
+                            <div className={`activity-icon ${todo.activity_type}`}>
+                              {todo.activity_type === 'created' ? '✨' : 
+                               todo.activity_type === 'completed' ? '✅' : '🌟'}
+                            </div>
+                            <div className="history-todo-content">
+                              <span className="history-todo-text">{todo.task}</span>
+                              <span className="history-activity-type">
+                                {todo.activity_type === 'created' ? 'Created' :
+                                 todo.activity_type === 'completed' ? 'Completed' : 'Created & Completed'}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <footer className="footer">
+            <p>Tap on a task to mark it as complete</p>
+          </footer>
+        </div>
       </div>
+
+      {/* Pomodoro Timer Modal */}
+      {showPomodoro && selectedTodoForFocus && (
+        <PomodoroTimer
+          todo={selectedTodoForFocus}
+          onComplete={completeFocusSession}
+          onClose={closeFocusMode}
+        />
+      )}
     </div>
   );
 }
