@@ -138,10 +138,10 @@ function App() {
       <div className="container">
         <header className="header">
           <h1 className="title">
-            <span className="title-icon">✅</span>
-            Todo App
+            <span className="title-icon">📋</span>
+            All my tasks
           </h1>
-          <p className="subtitle">Stay organized and productive</p>
+          <p className="subtitle">Stay organized and focused</p>
         </header>
 
         {/* Statistics */}
@@ -166,13 +166,13 @@ function App() {
             className={`tab ${activeTab === 'todos' ? 'active' : ''}`}
             onClick={() => setActiveTab('todos')}
           >
-            📝 Todos
+            <span>📝</span> Today
           </button>
           <button 
             className={`tab ${activeTab === 'history' ? 'active' : ''}`}
             onClick={() => setActiveTab('history')}
           >
-            📅 History
+            <span>📅</span> History
           </button>
         </div>
 
@@ -184,12 +184,11 @@ function App() {
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                placeholder="What needs to be done?"
+                placeholder="Add a new task"
                 className="todo-input"
               />
               <button type="submit" className="add-button">
                 <span className="add-icon">+</span>
-                Add Task
               </button>
             </div>
           </form>
@@ -215,9 +214,9 @@ function App() {
                 </div>
               ) : todos.length === 0 ? (
                 <div className="empty-state">
-                  <div className="empty-icon">📝</div>
-                  <h3>No todos yet</h3>
-                  <p>Add your first task to get started!</p>
+                  <div className="empty-icon">🎯</div>
+                  <h3>Add your first task</h3>
+                  <p>Time to add your first tasks</p>
                 </div>
               ) : (
                 todos.map((todo) => (
@@ -248,7 +247,7 @@ function App() {
                       className="delete-button"
                       aria-label="Delete todo"
                     >
-                      🗑️
+                      ×
                     </button>
                   </div>
                 ))
@@ -309,7 +308,7 @@ function App() {
 
         {/* Footer */}
         <footer className="footer">
-          <p>Click on a task to mark it as complete</p>
+          <p>Tap on a task to mark it as complete</p>
         </footer>
       </div>
     </div>
