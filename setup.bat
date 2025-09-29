@@ -19,6 +19,14 @@ REM Install Python dependencies
 echo Installing Python dependencies...
 pip install -r requirements.txt
 
+REM Create .env file if it doesn't exist
+if not exist ".env" (
+    echo Creating environment configuration file...
+    copy .env.example .env
+    echo ⚙️ Please edit .env file with your PostgreSQL credentials if you want to use PostgreSQL
+    echo 💡 Otherwise, the app will use SQLite by default
+)
+
 echo ✅ Backend setup complete!
 
 REM Setup Frontend
