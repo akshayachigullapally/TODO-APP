@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import PomodoroTimer from './components/PomodoroTimer';
 import './App.css';
@@ -7,6 +8,11 @@ import './App.css';
 const API_URL = 'http://127.0.0.1:5000';
 
 function App() {
+  // Authentication state
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  
+  // App state
   const [todos, setTodos] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('General');
@@ -28,6 +34,26 @@ function App() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [showPomodoro, setShowPomodoro] = useState(false);
   const [selectedTodoForFocus, setSelectedTodoForFocus] = useState(null);
+
+  // Check for existing authentication on app load
+  useEffect(() => {
+    const checkAuth = () => {
+      try {
+        const savedUser = localStorage.getItem('todoUser');
+        if (savedUser) {
+          const userData = JSON.parse(savedUser);
+          setUser(userData);
+        }
+      } catch (error) {
+        console.error('Error checking authentication:', error);
+        localStorage.removeItem('todoUser');
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
 
   // Request notification permission on component mount
   useEffect(() => {
@@ -273,24 +299,78 @@ function App() {
     setSelectedTodoForFocus(null);
   };
 
+  // Only fetch data when user is authenticated
   useEffect(() => {
-    fetchTodos();
-    fetchStats();
-    fetchCategories();
-    if (activeTab === 'history') {
-      fetchHistory();
+    if (user && !authLoading) {
+      fetchTodos();
+      fetchStats();
+      fetchCategories();
+      if (activeTab === 'history') {
+        fetchHistory();
+      }
     }
-  }, [activeTab]);
+  }, [user, activeTab, authLoading]);
+
+  // Authentication handlers
+  const handleLogin = (userData) => {
+    setUser(userData);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('todoUser');
+    setUser(null);
+    setTodos([]);
+    setHistory([]);
+    setStats({ 
+      total: 0, 
+      completed: 0, 
+      pending: 0,
+      priority_breakdown: { high: 0, medium: 0, low: 0 },
+      overdue: 0
+    });
+    setActiveTab('todos');
+  };
+
+  // Show loading screen while checking authentication
+  if (authLoading) {
+    return (
+      <div className="auth-loading">
+        <div className="spinner"></div>
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  // Show login screen if not authenticated
+  if (!user) {
+    return <Login onLogin={handleLogin} />;
+  }
 
   return (
     <div className="app">
       {/* Full Width Header */}
       <header className="header">
-        <h1 className="title">
-          <span className="title-icon">📋</span>
-          All my tasks
-        </h1>
-        <p className="subtitle">Stay organized and focused</p>
+        <div className="header-content">
+          <div className="header-main">
+            <h1 className="title">
+              <span className="title-icon">📋</span>
+              All my tasks
+            </h1>
+            <p className="subtitle">Stay organized and focused</p>
+          </div>
+          <div className="header-actions">
+            <div className="user-info">
+              <span className="user-greeting">👋 Hello, {user.username}!</span>
+            </div>
+            <button 
+              onClick={handleLogout}
+              className="logout-button"
+              title="Logout"
+            >
+              🚪 Logout
+            </button>
+          </div>
+        </div>
       </header>
 
       <div className="container">
