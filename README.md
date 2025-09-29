@@ -1,4 +1,8 @@
-# 🚀 Modern Todo App
+# 🚀 Modern T### Backend (Flask)
+- ✅ **REST API** with Flask, Flask-CORS, and Flask-SQLAlchemy
+- 🐘 **PostgreSQL Database**: Enterprise-grade PostgreSQL database required
+- ⚡ **Optimized Performance**: PostgreSQL-specific indexes and constraints
+- 🔄 **CRUD Operations** for todos (Create, Read, Update, Delete)pp
 
 A beautiful, full-stack Todo application built with **Flask** (Python) backend and **React** frontend featuring a modern, professional UI design.
 
@@ -6,12 +10,15 @@ A beautiful, full-stack Todo application built with **Flask** (Python) backend a
 ![Flask](https://img.shields.io/badge/Flask-2.3.3-blue)
 ![React](https://img.shields.io/badge/React-19.1.1-blue)
 ![Python](https://img.shields.io/badge/Python-3.8+-yellow)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Required-blue)
+![Database](https://img.shields.io/badge/Database-PostgreSQL%20Only-red)
 
 ## ✨ Features
 
 ### Backend (Flask)
 - ✅ **REST API** with Flask, Flask-CORS, and Flask-SQLAlchemy
-- 📊 **SQLite Database** for data persistence
+- � **Dual Database Support**: PostgreSQL (production) + SQLite (development)
+- 🔄 **Auto-fallback**: Seamlessly falls back to SQLite if PostgreSQL unavailable
 - 🔄 **CRUD Operations** for todos (Create, Read, Update, Delete)
 - 📈 **Statistics endpoint** for todo metrics
 - 🛡️ **Error handling** with proper HTTP status codes
@@ -43,7 +50,13 @@ TODO-APP/
 │   ├── package.json       # Node.js dependencies
 │   └── ...
 ├── setup.bat              # Windows setup script
+├── setup.sh               # Mac/Linux setup script
 ├── start.bat              # Windows start script
+├── start-postgres.bat     # Start PostgreSQL with Docker (Windows)
+├── start-postgres.sh      # Start PostgreSQL with Docker (Mac/Linux)
+├── docker-compose.yml     # PostgreSQL Docker configuration
+├── POSTGRESQL_SETUP.md    # Detailed PostgreSQL setup guide
+├── POSTGRESQL_INSTALLATION.md  # Installation troubleshooting
 └── README.md              # This file
 ```
 
@@ -90,6 +103,36 @@ npm install
 # Start React development server
 npm start
 ```
+
+## 🐘 PostgreSQL Database (Required)
+
+⚠️ **This application requires PostgreSQL** - no fallback database is provided.
+
+### Quick PostgreSQL Setup
+
+#### Quick Start with Docker:
+```cmd
+# Start PostgreSQL with Docker
+start-postgres.bat    # Windows
+./start-postgres.sh   # Mac/Linux
+
+# Then start the app
+start.bat            # Windows
+```
+
+#### Manual PostgreSQL Setup:
+1. Install PostgreSQL locally or use a cloud provider
+2. Create database: `todos_db`
+3. Copy `.env.example` to `.env` in `flask-server/`
+4. Update `.env` with your PostgreSQL credentials:
+   ```env
+   POSTGRES_HOST=localhost
+   POSTGRES_DB=todos_db
+   POSTGRES_USER=your_username
+   POSTGRES_PASSWORD=your_password
+   ```
+
+📖 **Detailed PostgreSQL setup guide**: [POSTGRESQL_SETUP.md](POSTGRESQL_SETUP.md)
 
 ## 🌐 Access the Application
 

@@ -2,3 +2,5 @@ Flask==2.3.3
 Flask-SQLAlchemy==3.0.5
 Flask-CORS==4.0.0
 Werkzeug==2.3.7
+psycopg[binary]==3.2.10
+python-dotenv==1.0.0

@@ -21,6 +21,14 @@ source venv/bin/activate  # For Mac/Linux
 echo "Installing Python dependencies..."
 pip install -r requirements.txt
 
+# Create .env file if it doesn't exist
+if [ ! -f ".env" ]; then
+    echo "Creating environment configuration file..."
+    cp .env.example .env
+    echo "⚙️ Please edit .env file with your PostgreSQL credentials if you want to use PostgreSQL"
+    echo "💡 Otherwise, the app will use SQLite by default"
+fi
+
 echo "✅ Backend setup complete!"
 
 # Setup Frontend
